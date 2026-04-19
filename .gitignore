@@ -1,0 +1,13 @@
+node_modules/
+package-lock.json
+.DS_Store
+
+# Local scratch / caches
+.cache/
+*.log
+*.tmp
+
+# Per-user / per-machine
+.claude/settings.local.json
+.env
+.env.local

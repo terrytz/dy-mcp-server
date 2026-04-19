@@ -1,0 +1,28 @@
+{
+  "name": "dy-mcp-server",
+  "version": "2.0.0",
+  "description": "抖音聊天 (Douyin Chat) automation suite — asar injector, HTTP API, MCP server, Chloe bridge.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "dy-mcp": "./src/index.js",
+    "dy": "./bin/dy"
+  },
+  "scripts": {
+    "start": "node src/start.js",
+    "mcp": "node src/index.js",
+    "bridge": "node src/bridge.js",
+    "responder": "node src/chloe-responder.js",
+    "brain": "node src/chloe-brain.js",
+    "memory-updater": "node src/memory-updater.js",
+    "sticker-interpreter": "node src/sticker-interpreter.js",
+    "image-interpreter": "node src/image-interpreter.js",
+    "inject": "bash scripts/inject.sh",
+    "inject:restore": "bash scripts/inject.sh --restore",
+    "inject:status": "bash scripts/inject.sh --status"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "license": "MIT"
+}
