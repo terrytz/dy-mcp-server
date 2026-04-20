@@ -84,4 +84,3 @@ export function loadConfig() {
 }
 
 export function repoRoot() { return REPO_ROOT; }
-export function profileDir() { return loadConfig().profileDir; }

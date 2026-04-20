@@ -12,7 +12,7 @@
  *   3. Try to get the image bytes — first via the Douyin in-app endpoint
  *      /api/image?md5=<hash> (already decrypted + local), fallback to
  *      fetching stickerUrl directly.
- *   4. Save to /tmp/chloe-sticker-<hash>.{jpg|png}
+ *   4. Save to /tmp/dy-sticker-<hash>.{jpg|png}
  *   5. Call `hermes -p chloe chat --image <path> -q "..."` to describe it.
  *   6. Clean the output and write to sticker-cache.json under both the
  *      original URL and the normalized key.
@@ -125,7 +125,7 @@ async function fetchStickerImage(url) {
   // dance on the CDN URL.
   if (md5) {
     try {
-      const dest = join(TMP_DIR, `chloe-sticker-${hash}.jpg`);
+      const dest = join(TMP_DIR, `dy-sticker-${hash}.jpg`);
       return await downloadToFile(`${DY_BASE}/api/image?md5=${md5}`, dest);
     } catch (e) {
       console.warn("[stkintrp] /api/image failed, falling back to direct URL:", e.message);
@@ -133,7 +133,7 @@ async function fetchStickerImage(url) {
   }
   // Fallback: direct CDN fetch. Format may be JPEG/PNG/WebP.
   const ext = url.match(/\.(jpe?g|png|webp|gif)(?:\?|$)/i)?.[1]?.toLowerCase() || "jpg";
-  const dest = join(TMP_DIR, `chloe-sticker-${hash}.${ext}`);
+  const dest = join(TMP_DIR, `dy-sticker-${hash}.${ext}`);
   return await downloadToFile(url, dest);
 }
 

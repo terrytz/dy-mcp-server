@@ -144,19 +144,19 @@ async function fetchImageFromCdn(url) {
 }
 
 function ensureJpeg(buf, format, md5) {
-  const outJpeg = join(TMP_DIR, `chloe-image-${md5}.jpg`);
+  const outJpeg = join(TMP_DIR, `dy-image-${md5}.jpg`);
   // Already JPEG or PNG? Most VL models accept both — save as-is.
   if (format === "jpeg" || format === "jpg") {
     writeFileSync(outJpeg, buf);
     return outJpeg;
   }
   if (format === "png") {
-    const outPng = join(TMP_DIR, `chloe-image-${md5}.png`);
+    const outPng = join(TMP_DIR, `dy-image-${md5}.png`);
     writeFileSync(outPng, buf);
     return outPng;
   }
   // heic / webp / gif → convert to jpeg via sips
-  const srcPath = join(TMP_DIR, `chloe-image-${md5}.${format}`);
+  const srcPath = join(TMP_DIR, `dy-image-${md5}.${format}`);
   writeFileSync(srcPath, buf);
   try {
     execSync(`sips -s format jpeg "${srcPath}" --out "${outJpeg}" 2>/dev/null`);

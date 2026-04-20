@@ -11,7 +11,7 @@
  *   4. POST each ACTION reply back to Douyin via /api/send (with signature)
  *
  * Per-conv session map stored at:
- *   ~/.hermes/profiles/chloe/chloe-sessions.json
+ *   <profileDir>/chloe-sessions.json
  *   { "<convId>": { "session_id": "20260418_...", "created_at": "..." } }
  *
  * This gives prompt-cache benefits + cumulative memory per conv.
@@ -626,7 +626,7 @@ async function main() {
   // Also write the prompt to a rolling per-conv snapshot so you can inspect it
   // after the fact without scrolling through the bridge log. Overwrites each run.
   try {
-    const snap = `/tmp/chloe-last-prompt-${convId}.txt`;
+    const snap = `/tmp/dy-last-prompt-${convId}.txt`;
     const header = `# conv=${convId}\n# mode=${sessionId ? "resume" : "seed"}\n# sessionId=${sessionId || "(new)"}\n# msgs=${messages.length}\n# chars=${prompt.length}\n# at=${new Date().toISOString()}\n\n`;
     writeFileSync(snap, header + prompt);
   } catch { /* non-fatal */ }
@@ -662,9 +662,9 @@ async function main() {
       await renameSession(captured, title);
       console.log(`[responder] bootstrapped session ${captured} (title: ${title})`);
     } else {
-      console.warn(`[responder] could not extract session_id — saving diagnostic to /tmp/chloe-hermes-debug.log`);
+      console.warn(`[responder] could not extract session_id — saving diagnostic to /tmp/dy-hermes-debug.log`);
       try {
-        writeFileSync("/tmp/chloe-hermes-debug.log",
+        writeFileSync("/tmp/dy-hermes-debug.log",
           `--- stdout ---\n${hermesOutput}\n--- stderr ---\n${hermesErr}\n`);
       } catch {}
     }

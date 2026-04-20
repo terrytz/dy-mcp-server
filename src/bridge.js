@@ -291,10 +291,16 @@ async function processNewMessages() {
   const msgs = readNewMessages();
   if (msgs.length === 0) return;
 
-  const cfg = { ...loadConfig(), ...loadChatConfig() };
-  const signature = cfg.signature || loadConfig().signature;
-  const allowed = Object.keys(cfg.allowedChats || {});
-  const blocked = new Set(Object.keys(cfg.blockedUsers || {}));
+  // Identity fields (signature) come from project config. Live runtime state
+  // (allowedChats, blockedUsers) is written by the setup wizard into
+  // chat-config.json, so prefer that when present and fall back to project
+  // defaults. Reading fresh each tick so wizard edits take effect without
+  // restart.
+  const project = loadConfig();
+  const chatCfg = loadChatConfig();
+  const signature = chatCfg.signature || project.signature;
+  const allowed = Object.keys(chatCfg.allowedChats || project.allowedChats || {});
+  const blocked = new Set(Object.keys(chatCfg.blockedUsers || project.blockedUsers || {}));
 
   const stickerCache = loadStickerCache();
   const imageCache = loadImageCache();

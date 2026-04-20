@@ -342,7 +342,7 @@ async function main() {
   if (currentMemory.length > 200 && cleaned.length < currentMemory.length * 0.80) {
     console.error(`[memupd] output shrunk from ${currentMemory.length} to ${cleaned.length} bytes — refusing (looks like compression, not correction)`);
     try {
-      writeFileSync("/tmp/chloe-memupd-reject.log",
+      writeFileSync("/tmp/dy-memupd-reject.log",
         `--- rejected output (${cleaned.length} bytes, was ${currentMemory.length}) ---\n${cleaned}\n`);
     } catch {}
     process.exit(1);

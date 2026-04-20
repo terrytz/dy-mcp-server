@@ -51,6 +51,8 @@ function loadChatConfig() {
 function loadTriggerName() {
   const cfg = loadChatConfig();
   if (cfg.triggerName) return String(cfg.triggerName).toLowerCase();
+  // SOUL.md is optional — if missing or unreadable, fall back silently.
+  // We don't log here because this runs on every tick.
   try {
     const persona = readFileSync(PROFILE_SOUL, "utf8");
     const match = persona.match(/Trigger[:\s]*.*?"?(\w+)"?/i)
