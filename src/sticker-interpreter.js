@@ -30,8 +30,9 @@ import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { createHash } from "node:crypto";
+import { loadConfig } from "./config.js";
 
-const PROFILE_DIR = join(process.env.HOME || "/Users/terry", ".hermes/profiles/chloe");
+const PROFILE_DIR = loadConfig().profileDir;
 const STICKER_CACHE = join(PROFILE_DIR, "sticker-cache.json");
 const CACHE_LOCK = "/tmp/dy-sticker-cache.lock";
 const TMP_DIR = "/tmp";
@@ -153,8 +154,8 @@ Output ONLY the single sentence. No preamble, no markdown, no quotes around it.`
 async function runHermesVision(imagePath, prompt) {
   return new Promise((resolve, reject) => {
     const args = [
-      "-p", "chloe", "chat", "-Q",
-      "--source", "chloe-sticker",
+      "-p", loadConfig().hermesProfile, "chat", "-Q",
+      "--source", "dy-sticker",
       "--image", imagePath,
       "-q", prompt,
     ];

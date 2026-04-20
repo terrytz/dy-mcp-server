@@ -1,5 +1,15 @@
 {
+  "ownerName": "User",
+  "personaName": "Bot",
+  "triggerName": "bot",
+  "signature": "[Bot]",
   "defaultModel": "sonnet",
-  "signature": "-- Bot",
-  "allowedChats": {}
+  "hermesProfile": "bot",
+  "profileDir": "~/.dy-mcp-server/profile",
+  "telegram": {
+    "botToken": "",
+    "chatId": ""
+  },
+  "allowedChats": {},
+  "blockedUsers": {}
 }

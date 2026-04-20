@@ -275,11 +275,13 @@ async function handleTool(name, args) {
         return buf.toString();
       });
 
+      const { loadConfig } = await import("./config.js");
+      const botSignature = loadConfig().signature;
       const count = fd.trim().split("\n").filter(Boolean).filter(line => {
         try {
           const m = JSON.parse(line);
           if (m.convId !== convId) return false;
-          if (m.text && m.text.endsWith("[🎈Chloe🧸]")) return false; // bot's own signature
+          if (m.text && m.text.endsWith(botSignature)) return false; // bot's own signature
           return true;
         } catch { return false; }
       }).length;

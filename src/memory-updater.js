@@ -22,8 +22,9 @@ import { readFileSync, writeFileSync, existsSync, renameSync, mkdirSync, rmdirSy
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { loadConfig } from "./config.js";
 
-const PROFILE_DIR = join(process.env.HOME || "/Users/terry", ".hermes/profiles/chloe");
+const PROFILE_DIR = loadConfig().profileDir;
 const MEMORY_DIR = join(PROFILE_DIR, "memories");
 const STICKER_CACHE = join(PROFILE_DIR, "sticker-cache.json");
 const IMAGE_CACHE = join(PROFILE_DIR, "image-cache.json");
@@ -42,8 +43,11 @@ function parseArgs() {
 }
 
 function loadSignature() {
-  try { return JSON.parse(readFileSync(CHAT_CONFIG, "utf8")).signature || "[🎈Chloe🧸]"; }
-  catch { return "[🎈Chloe🧸]"; }
+  try {
+    const sig = JSON.parse(readFileSync(CHAT_CONFIG, "utf8")).signature;
+    if (sig) return sig;
+  } catch {}
+  return loadConfig().signature;
 }
 function loadConvName(convId) {
   try {
@@ -119,8 +123,9 @@ function loadRecentMessages(convId, signature) {
 }
 
 function formatMsg(m, stickerCache, imageCache, signature) {
-  const isChloe = m.text && m.text.endsWith(signature);
-  const who = isChloe ? "Chloe" : (m.isSelfSend ? "Terry" : (m.sender || "?"));
+  const cfg = loadConfig();
+  const isBot = m.text && m.text.endsWith(signature);
+  const who = isBot ? cfg.personaName : (m.isSelfSend ? cfg.ownerName : (m.sender || "?"));
   if (m.type === 5) {
     const interp = lookupSticker(stickerCache, m);
     return `${who}: [sticker${interp ? `: ${interp}` : ""}]`;
@@ -163,7 +168,7 @@ Return the full updated memory file. No markdown fences, no commentary — just 
 
 async function runHermes(prompt) {
   return new Promise((resolve, reject) => {
-    const args = ["-p", "chloe", "chat", "-Q", "--source", "chloe-memupd", "-q", prompt];
+    const args = ["-p", loadConfig().hermesProfile, "chat", "-Q", "--source", "dy-memupd", "-q", prompt];
     const child = spawn("hermes", args, {
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 240_000,

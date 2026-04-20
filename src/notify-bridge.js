@@ -1,61 +1,33 @@
 #!/usr/bin/env node
 /**
- * notify-bridge.js — watches /tmp/dy-messages.jsonl for Chloe-relevant messages
- * and notifies Hermes via Telegram so Hermes can respond.
+/**
+ * notify-bridge.js — watches /tmp/dy-messages.jsonl for bot-relevant messages
+ * and notifies the configured Telegram chat so the owner / an external agent
+ * can respond.
  *
  * Architecture:
  *   抖音聊天 app (injected API) → /tmp/dy-messages.jsonl
  *     → notify-bridge.js (fs.watch on jsonl log + Telegram bot API)
- *       → Telegram DM to Terry
- *         → Hermes receives notification
+ *       → Telegram DM to the configured chat_id
+ *         → external agent receives notification
  *           → responds via dy_send (MCP → Douyin API)
  */
 
 import { watch } from "node:fs";
-import { openSync, readSync, closeSync, existsSync, statSync, writeFileSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { openSync, readSync, closeSync, existsSync, statSync, writeFileSync } from "node:fs";
+import { loadConfig } from "./config.js";
 
 const BASE_URL = "http://127.0.0.1:3456";
-
-// ─── Config ──────────────────────────────────────────────────────────────────
-
-const DY_DIR = process.env.DY_DIR || (() => {
-  try { return readFileSync("/Users/terry/.dy-chat-bot-path", "utf8").trim(); }
-  catch { return "/Users/terry/code/dy-chat-bot"; }
-})();
 
 const LOG = "/tmp/dy-messages.jsonl";
 const CURSOR = "/tmp/dy-bridge.cursor";
 const POLL_TIMEOUT = 120_000; // 2 min fallback poll
 
-// Telegram — set via env or read from Hermes config
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "338918657";
+// ─── Config loaders (live re-read so setup wizard edits take effect) ────────
 
-// ─── Config loaders ─────────────────────────────────────────────────────────
-
-function loadTriggerName() {
-  try {
-    const persona = readFileSync(join(DY_DIR, "user", "PERSONA.md"), "utf8");
-    const match = persona.match(/Trigger[:\s]*.*?"(\w+)"/i)
-      || persona.match(/Name[:\s]*\*?\*?(\w+)/i);
-    return match ? match[1].toLowerCase() : "chloe";
-  } catch { return "chloe"; }
-}
-
-function loadSignature() {
-  try {
-    const config = JSON.parse(readFileSync(join(DY_DIR, "user", "config.json"), "utf8"));
-    return config.signature || "[🎈Chloe🧸]";
-  } catch { return "[🎈Chloe🧸]"; }
-}
-
-function loadAllowedChats() {
-  try {
-    const config = JSON.parse(readFileSync(join(DY_DIR, "user", "config.json"), "utf8"));
-    return Object.keys(config.allowedChats || {});
-  } catch { return []; }
-}
+function loadTriggerName() { return loadConfig().triggerName; }
+function loadSignature() { return loadConfig().signature; }
+function loadAllowedChats() { return Object.keys(loadConfig().allowedChats || {}); }
 
 function isAllowedChat(convId, allowed) {
   return allowed.length === 0 || allowed.includes(convId);
@@ -96,16 +68,21 @@ function readNewMessages() {
 // ─── Telegram notifier ─────────────────────────────────────────────────────
 
 async function sendTelegram(text) {
-  if (!TELEGRAM_BOT_TOKEN) {
-    console.log("[bridge] TELEGRAM_BOT_TOKEN not set, notification skipped");
+  const { telegram } = loadConfig();
+  if (!telegram.botToken) {
+    console.log("[bridge] telegram.botToken not set, notification skipped");
+    return;
+  }
+  if (!telegram.chatId) {
+    console.log("[bridge] telegram.chatId not set, notification skipped");
     return;
   }
   try {
-    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${telegram.botToken}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
+        chat_id: telegram.chatId,
         text,
         parse_mode: "Markdown",
         disable_web_page_preview: true,
@@ -137,7 +114,7 @@ async function processMessages(rawMsgs, { triggerName, signature, allowed }) {
   const relevant = rawMsgs.filter(m => {
     if (!isAllowedChat(m.convId, allowed)) return false;
     if (m.isBotMessage) return false;
-    // Skip Chloe's own outgoing messages
+    // Skip the bot's own outgoing messages
     if (m.text && m.text.endsWith(signature)) return false;
     // Skip empty non-media messages
     if (!m.text && m.type !== 5 && m.type !== 27 && m.type !== 8) return false;
@@ -170,8 +147,9 @@ async function processMessages(rawMsgs, { triggerName, signature, allowed }) {
       return m.text || "";
     }).filter(Boolean).join(" | ");
 
+    const { personaName } = loadConfig();
     const prefix = hasMention ? "📩 *" : "📩 [Proactive] ";
-    const text = `${prefix}Chloe mentioned in ${convName}*\n\n${msgLines}\n\n---\nReply here to respond as Chloe.`;
+    const text = `${prefix}${personaName} mentioned in ${convName}*\n\n${msgLines}\n\n---\nReply here to respond as ${personaName}.`;
 
     console.log(`[bridge] → Telegram notification: ${convName}, ${msgs.length} msg(s), mention=${hasMention}`);
     await sendTelegram(text);

@@ -27,8 +27,9 @@ import {
 import { spawn, execSync } from "node:child_process";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { loadConfig } from "./config.js";
 
-const PROFILE_DIR = join(process.env.HOME || "/Users/terry", ".hermes/profiles/chloe");
+const PROFILE_DIR = loadConfig().profileDir;
 const IMAGE_CACHE = join(PROFILE_DIR, "image-cache.json");
 const CACHE_LOCK = "/tmp/dy-image-cache.lock";
 const TMP_DIR = "/tmp";
@@ -217,8 +218,8 @@ Keep it factual — no embellishment, no guessing at intent beyond what the imag
 async function runHermesVision(imagePath, prompt) {
   return new Promise((resolve, reject) => {
     const args = [
-      "-p", "chloe", "chat", "-Q",
-      "--source", "chloe-image",
+      "-p", loadConfig().hermesProfile, "chat", "-Q",
+      "--source", "dy-image",
       "--image", imagePath,
       "-q", prompt,
     ];

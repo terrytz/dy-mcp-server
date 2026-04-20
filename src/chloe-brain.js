@@ -14,6 +14,7 @@
 import { openSync, readSync, closeSync, existsSync, statSync, writeFileSync, readFileSync, mkdirSync, rmdirSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { loadConfig } from "./config.js";
 
 const QUEUE_LOCK = "/tmp/dy-chloe-queue.lock";
 
@@ -33,55 +34,46 @@ const QUEUE = "/tmp/dy-chloe-queue.jsonl";
 const SEEN_CACHE = "/tmp/dy-brain-seen.json";
 const SEEN_WINDOW = 500; // keep last 500 signatures
 
-// ─── Load Chloe's config ─────────────────────────────────────────────────────
-// Authoritative source is the Hermes profile: ~/.hermes/profiles/chloe/chat-config.json.
-// Legacy dy-chloe/user/config.json is read as a fallback during migration.
+// ─── Runtime config ─────────────────────────────────────────────────────────
+// Identity (owner, persona, signature) comes from ./config.js. Live chat
+// state (allowedChats, blockedUsers) is written by the setup wizard into
+// <profileDir>/chat-config.json and read fresh on every tick.
 
-const PROFILE_DIR = join(process.env.HOME || "/Users/terry", ".hermes/profiles/chloe");
+const PROFILE_DIR = loadConfig().profileDir;
 const PROFILE_CONFIG = join(PROFILE_DIR, "chat-config.json");
 const PROFILE_SOUL = join(PROFILE_DIR, "SOUL.md");
 
-const LEGACY_DY_DIR = process.env.DY_DIR || (() => {
-  try { return readFileSync("/Users/terry/.dy-chat-bot-path", "utf8").trim(); }
-  catch { return "/Users/terry/code/dy-chloe"; }
-})();
-
 function loadChatConfig() {
-  try {
-    return JSON.parse(readFileSync(PROFILE_CONFIG, "utf8"));
-  } catch {
-    try {
-      return JSON.parse(readFileSync(join(LEGACY_DY_DIR, "user", "config.json"), "utf8"));
-    } catch {
-      return {};
-    }
-  }
+  try { return JSON.parse(readFileSync(PROFILE_CONFIG, "utf8")); }
+  catch { return {}; }
 }
 
 function loadTriggerName() {
   const cfg = loadChatConfig();
-  if (cfg.triggerName) return cfg.triggerName.toLowerCase();
+  if (cfg.triggerName) return String(cfg.triggerName).toLowerCase();
   try {
     const persona = readFileSync(PROFILE_SOUL, "utf8");
     const match = persona.match(/Trigger[:\s]*.*?"?(\w+)"?/i)
       || persona.match(/Name[:\s]*\*?\*?(\w+)/i);
-    return match ? match[1].toLowerCase() : "chloe";
-  } catch { return "chloe"; }
+    if (match) return match[1].toLowerCase();
+  } catch {}
+  return loadConfig().triggerName;
 }
 
 function loadSignature() {
-  const cfg = loadChatConfig();
-  return cfg.signature || "[🎈Chloe🧸]";
+  return loadChatConfig().signature || loadConfig().signature;
 }
 
 function loadAllowedChats() {
   const cfg = loadChatConfig();
-  return Object.keys(cfg.allowedChats || {});
+  const allowed = cfg.allowedChats ?? loadConfig().allowedChats ?? {};
+  return Object.keys(allowed);
 }
 
 function loadBlockedUsers() {
   const cfg = loadChatConfig();
-  return new Set(Object.keys(cfg.blockedUsers || {}));
+  const blocked = cfg.blockedUsers ?? loadConfig().blockedUsers ?? {};
+  return new Set(Object.keys(blocked));
 }
 
 function isAllowedChat(convId, allowed) {

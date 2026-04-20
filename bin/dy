@@ -4,15 +4,17 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { lookup as stickerLookup, store as stickerStore, list as stickerList, stats as stickerStats, clear as stickerClear } from "../src/sticker-cache.js";
+import { loadConfig as loadProjectConfig } from "../src/config.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // USER_DIR resolution order:
 //   1. $DY_USER_DIR env override
-//   2. ~/.hermes/profiles/chloe (Hermes-era default)
-//   3. ./user (legacy dy-chat-bot/dy-chloe layout)
+//   2. config.profileDir (from ./config.js)
+//   3. ./user (legacy layout, last-resort fallback)
+const PROJECT_CONFIG = loadProjectConfig();
 const USER_DIR = process.env.DY_USER_DIR
-  || (existsSync(join(process.env.HOME || "/Users/terry", ".hermes/profiles/chloe"))
-        ? join(process.env.HOME || "/Users/terry", ".hermes/profiles/chloe")
+  || (existsSync(PROJECT_CONFIG.profileDir)
+        ? PROJECT_CONFIG.profileDir
         : join(__dirname, "..", "user"));
 const BASE = "http://127.0.0.1:3456";
 const IMAGE_CACHE = "/tmp/dy-images";
@@ -43,11 +45,11 @@ function isAllowedChat(convId) {
 }
 
 function loadSignature() {
-  return loadConfig().signature || "[Bot]";
+  return loadConfig().signature || PROJECT_CONFIG.signature;
 }
 
 function loadTriggerName() {
-  // Hermes era: SOUL.md. Legacy: PERSONA.md.
+  // Runtime profile files may override the project config's trigger name.
   const persona = readFirstExisting([
     join(USER_DIR, "SOUL.md"),
     join(USER_DIR, "PERSONA.md"),
@@ -56,7 +58,7 @@ function loadTriggerName() {
     const triggerMatch = persona.match(/Trigger[:\s]*.*?"(\w+)"/i) || persona.match(/Name[:\s]*\*?\*?(\w+)/i);
     if (triggerMatch) return triggerMatch[1].toLowerCase();
   }
-  return "bot";
+  return PROJECT_CONFIG.triggerName;
 }
 
 async function resolveImage(md5, oid, cdnUrl, skey, convId) {

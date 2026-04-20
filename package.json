@@ -1,7 +1,7 @@
 {
   "name": "dy-mcp-server",
   "version": "2.0.0",
-  "description": "抖音聊天 (Douyin Chat) automation suite — asar injector, HTTP API, MCP server, Chloe bridge.",
+  "description": "抖音聊天 (Douyin Chat) automation suite — asar injector, HTTP API, MCP server, and persona bridge.",
   "type": "module",
   "main": "src/index.js",
   "bin": {

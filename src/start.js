@@ -79,9 +79,11 @@ process.on("SIGTERM", () => {
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
+  const { loadConfig } = await import("./config.js");
+  const cfg = loadConfig();
   console.log(`${LOG_PREFIX} dy-mcp-server starting...`);
   console.log(`${LOG_PREFIX} log: /tmp/dy-messages.jsonl`);
-  console.log(`${LOG_PREFIX} memory: ${process.env.HOME}/.hermes/profiles/chloe/memories/`);
+  console.log(`${LOG_PREFIX} memory: ${cfg.profileDir}/memories/`);
 
   spawnMcp();
   spawnBridge();

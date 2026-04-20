@@ -20,10 +20,14 @@ import {
   openSync, readSync, closeSync, appendFileSync, mkdirSync, rmdirSync,
 } from "node:fs";
 import { spawn } from "node:child_process";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { setTimeout as sleep } from "node:timers/promises";
+import { loadConfig } from "./config.js";
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const LOG = "/tmp/dy-messages.jsonl";
 const BRIDGE_CURSOR = "/tmp/dy-bridge.cursor";
@@ -31,14 +35,14 @@ const QUEUE = "/tmp/dy-chloe-queue.jsonl";
 const QUEUE_LOCK = "/tmp/dy-chloe-queue.lock";
 const STOP_FILE = "/tmp/dy-bridge-stop";
 
-const PROFILE_DIR = join(process.env.HOME || "/Users/terry", ".hermes/profiles/chloe");
+const { profileDir: PROFILE_DIR } = loadConfig();
 const CHAT_CONFIG = join(PROFILE_DIR, "chat-config.json");
 const STICKER_CACHE = join(PROFILE_DIR, "sticker-cache.json");
 const IMAGE_CACHE = join(PROFILE_DIR, "image-cache.json");
 
-const RESPONDER_PATH = "/Users/terry/code/dy-mcp-server/src/chloe-responder.js";
-const STICKER_INTERPRETER_PATH = "/Users/terry/code/dy-mcp-server/src/sticker-interpreter.js";
-const IMAGE_INTERPRETER_PATH = "/Users/terry/code/dy-mcp-server/src/image-interpreter.js";
+const RESPONDER_PATH = join(__dirname, "chloe-responder.js");
+const STICKER_INTERPRETER_PATH = join(__dirname, "sticker-interpreter.js");
+const IMAGE_INTERPRETER_PATH = join(__dirname, "image-interpreter.js");
 
 // ─── Tuning ──────────────────────────────────────────────────────────────────
 // Per-conversation debounce window. Higher = more messages batched into a
@@ -147,7 +151,7 @@ function shouldObserve(msg, { signature, allowed, blocked }) {
     return { ok: false, reason: "blocked_user" };
   }
   if (msg.text && msg.text.endsWith(signature)) {
-    return { ok: false, reason: "chloe_own_reply" };
+    return { ok: false, reason: "bot_own_reply" };
   }
   if (!msg.text && msg.type !== AWE_STICKER && msg.type !== AWE_IMAGE && msg.type !== AWE_VIDEO_SHARE) {
     return { ok: false, reason: "empty_non_media" };
@@ -287,8 +291,8 @@ async function processNewMessages() {
   const msgs = readNewMessages();
   if (msgs.length === 0) return;
 
-  const cfg = loadChatConfig();
-  const signature = cfg.signature || "[🎈Chloe🧸]";
+  const cfg = { ...loadConfig(), ...loadChatConfig() };
+  const signature = cfg.signature || loadConfig().signature;
   const allowed = Object.keys(cfg.allowedChats || {});
   const blocked = new Set(Object.keys(cfg.blockedUsers || {}));
 
